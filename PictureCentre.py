@@ -280,6 +280,9 @@ while not value is None:
 ''' Start Processing '''
 
 if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
+    if not parameters["offsetZ"] is None:
+        print("offset of " + parameters["offsetZ"] + "m defined in z axis")
+
     lst_pictures = importPictureNames(parameters["pic"])
     if not parameters["justin"] is None and os.path.isfile(parameters["justin"]):
         lst_event = importJustinFiles(parameters["justin"], float(parameters["offsetZ"]))
@@ -305,9 +308,7 @@ if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
 
     if not parameters["acc"] is None:
         matchWithAccuracy(lst_matched, float(parameters["acc"]))
-        print("Accuracy imported")
-    else:
-        print("Accuracy missing")
+        print("Accuracy overwritten")
 
     if not parameters["o"] is None:
         exportMatched(lst_matched, parameters["o"])
@@ -315,24 +316,6 @@ if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
         print("Export-Path missing")
         for row in lst_matched:
             print(row)
+
 else:
     raise Exception("Picture Path missing")
-
-
-
-
-#Oberflaeche
-
-'''from qtpy import QtWidgets
-
-win = QtWidgets.QMessageBox()
-win.setIcon(QtWidgets.QMessageBox.Information)
-win.setText("Anzahl Bildmitten: " + str(len(file_center)) + "\nAnzahl Bilder: " + str(len(file_pictures)) + "\n Bilder überspringen?")
-win.setWindowTitle("Achtung")
-win.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-#win.buttonClicked.connect(msgButtonClick)
-
-returnValue = win.exec()
-if returnValue == QtWidgets.QMessageBox.Yes:
-  print('OK clicked')
-'''
