@@ -21,7 +21,7 @@ def importCamFiles(path, offsetZ):
 
     return lst_cam
 
-def importJustinFiles(path, offsetZ = 0):
+def importJustinFiles(path, offsetZ):
     '''
         importJustinFiles Function
         :param path String: path to Justin File
@@ -134,7 +134,7 @@ def matchWithHexalogs(lst_matched, lst_hexalogs, skipHexalogs = 0):
 
     return lst_matched
 
-def leverArmCorrection(orientation, leverarm = (0, 0, -0.3)):
+def leverArmCorrection(orientation, leverarm):
     '''
         leverArmCorrection Function
         :param orientation Tuple: Roll, Pitch, Yaw
@@ -162,7 +162,7 @@ def leverArmCorrection(orientation, leverarm = (0, 0, -0.3)):
 
     return dx, dy, dz
 
-def matchLeverArmWithJustin(lst_matched):
+def matchLeverArmWithJustin(lst_matched, leverarm):
     '''
         matchLeverArmWithJustin Function
         :param lst_matched List:
@@ -170,7 +170,7 @@ def matchLeverArmWithJustin(lst_matched):
         :return lst_matched:
     '''
     for row in lst_matched:
-        dx, dy, dz = leverArmCorrection(row[2])
+        dx, dy, dz = leverArmCorrection(row[2], leverarm)
 
         # Translation to global system
         y = float(row[1][0]) + dy
@@ -181,7 +181,7 @@ def matchLeverArmWithJustin(lst_matched):
 
     return lst_matched
 
-def matchLeverArmWithCam(lst_matched):
+def matchLeverArmWithCam(lst_matched, leverarm):
     '''
         matchLeverArmWithCam Function
         :param lst_matched List:
@@ -189,7 +189,7 @@ def matchLeverArmWithCam(lst_matched):
         :return lst_matched:
     '''
     for row in lst_matched:
-        dx, dy, dz = leverArmCorrection(row[2])
+        dx, dy, dz = leverArmCorrection(row[2], leverarm)
 
         #WGS84 Radius of the large half-axis
         radius = 6378137
@@ -263,6 +263,7 @@ def geodround(value, decimal):
 parameters = {"pic": None, "cam": None, "justin": None, "hex": None,
               "ske": 0, "skp": 0, "skh": 0, "acc": None,
               "o": None,
+              "lx": 0, "ly": 0, "lz": 0,
               "offsetZ": 0}
 
 iterator = iter(sys.argv[1:])
@@ -296,13 +297,18 @@ if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
     lst_matched = matchPicturWithEvents(lst_event, lst_pictures, skipPictures=int(parameters["skp"]), skipEvents=int(parameters["ske"]))
 
     if not parameters["hex"] is None and os.path.isfile(parameters["hex"]):
-        lst_hexalog = importHexalogFiles(parameters["hex"])
-        print("Hexalogfile imported")
-        matchWithHexalogs(lst_matched, lst_hexalog, skipHexalogs=int(parameters["skh"]))
-        if not parameters["justin"] is None:
-            matchLeverArmWithJustin(lst_matched)
-        elif not parameters["cam"] is None:
-            matchLeverArmWithCam(lst_matched)
+        if not (parameters["lx"] == 0 and parameters["ly"] == 0 and parameters["lz"] == 0):
+            leverarm = (parameters["lx"], parameters["ly"], parameters["lz"])
+
+            lst_hexalog = importHexalogFiles(parameters["hex"])
+            print("Hexalogfile imported")
+            matchWithHexalogs(lst_matched, lst_hexalog, skipHexalogs=int(parameters["skh"]))
+            if not parameters["justin"] is None:
+                matchLeverArmWithJustin(lst_matched, leverarm)
+            elif not parameters["cam"] is None:
+                matchLeverArmWithCam(lst_matched, leverarm)
+        else:
+            print("leverarm is not defined, set lx, ly or/and lz parameter", file=sys.stderr)
     else:
         print("Hexalogfile missing")
 
