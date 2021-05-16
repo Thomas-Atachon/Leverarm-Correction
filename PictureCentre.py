@@ -259,6 +259,9 @@ def geodround(value, decimal):
 
 ########################################################################################################################
 
+__version__ = "1.1"
+__author__ = "Github: Thomas-Atachon"
+
 ''' Evaluate Parameters '''
 parameters = {"pic": None, "cam": None, "justin": None, "hex": None,
               "ske": 0, "skp": 0, "skh": 0, "acc": None,
@@ -282,7 +285,7 @@ while not value is None:
 
 if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
     if not parameters["offsetZ"] is None:
-        print("offset of " + parameters["offsetZ"] + "m defined in z axis")
+        print("offset of " + str(parameters["offsetZ"]) + "m defined in z axis")
 
     lst_pictures = importPictureNames(parameters["pic"])
     if not parameters["justin"] is None and os.path.isfile(parameters["justin"]):
@@ -298,7 +301,7 @@ if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
 
     if not parameters["hex"] is None and os.path.isfile(parameters["hex"]):
         if not (parameters["lx"] == 0 and parameters["ly"] == 0 and parameters["lz"] == 0):
-            leverarm = (parameters["lx"], parameters["ly"], parameters["lz"])
+            leverarm = (float(parameters["lx"]), float(parameters["ly"]), float(parameters["lz"]))
 
             lst_hexalog = importHexalogFiles(parameters["hex"])
             print("Hexalogfile imported")
@@ -307,8 +310,9 @@ if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
                 matchLeverArmWithJustin(lst_matched, leverarm)
             elif not parameters["cam"] is None:
                 matchLeverArmWithCam(lst_matched, leverarm)
+            print("leverarmcorrection performed with " + str(leverarm))
         else:
-            print("leverarm is not defined, set lx, ly or/and lz parameter", file=sys.stderr)
+            print("\n   leverarm is not defined, set lx, ly or/and lz parameter - no leverarmcorrection performed\n")
     else:
         print("Hexalogfile missing")
 
