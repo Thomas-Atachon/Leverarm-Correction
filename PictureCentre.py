@@ -1,5 +1,14 @@
 import os, sys, math
 
+class PictureObject:
+    def __init__(self, picture: str, coordinate: list, accuracy: float, fixed:bool):
+        self.picture = picture
+        self.coordinate = coordinate
+        self.orientation = None
+
+        self.accuracy = accuracy
+        self.fixed = fixed
+
 def importCamFiles(path, offsetZ):
     '''
         importCamFiles Function
@@ -42,12 +51,13 @@ def importJustinFiles(path, offsetZ):
                 marker += 1
         else:
             values = row.split(" | ")
-            if len(values) >= 7:
+            if len(values) >= 8:
                 north = values[2].replace(",", ".")
                 east = values[3].replace(",", ".")
                 height = str(float(values[4].replace(",", ".")) + offsetZ)
                 accuracy = values[5].replace(",", ".")
-                lst_justin.append((north, east, height, accuracy))
+                fixed = (values[7].replace(" ", "") == "Yes")
+                lst_justin.append((north, east, height, accuracy, fixed))
                 
     return lst_justin
 
@@ -106,9 +116,10 @@ def matchPicturWithEvents(lst_event, lst_picturenames, skipPictures = 0, skipEve
     print("Number of Events/Pictures: " + str(len(lst_event)) + "/" + str(len(lst_picturenames)))
     if len(lst_event) == len(lst_picturenames):
         for i in range(len(lst_event)):
-            lst_matched.append([lst_picturenames[i], lst_event[i][0:3], (), lst_event[i][3]])
+            lst_matched.append(PictureObject(picture=lst_picturenames[i], coordinate=lst_event[i][0:3], accuracy=lst_event[i][3], fixed=lst_event[i][4]))
+            #lst_matched.append([lst_picturenames[i], lst_event[i][0:3], (), lst_event[i][3]])
     else:
-        raise IndexError("number of pictures and events does not match")
+        raise Exception("number of pictures and events does not match")
 
     return lst_matched
 
@@ -128,7 +139,7 @@ def matchWithHexalogs(lst_matched, lst_hexalogs, skipHexalogs = 0):
     print("Number of Hexalogevents/Pictures: " + str(len(lst_hexalogs)) + "/" + str(len(lst_matched)))
     if len(lst_matched) == len(lst_hexalogs):
         for i in range(len(lst_matched)):
-            lst_matched[i][2] = lst_hexalogs[i]
+            lst_matched[i].orientation = lst_hexalogs[i]
     else:
         raise IndexError("number of pictures and hexalogs does not match")
 
@@ -170,14 +181,14 @@ def matchLeverArmWithJustin(lst_matched, leverarm):
         :return lst_matched:
     '''
     for row in lst_matched:
-        dx, dy, dz = leverArmCorrection(row[2], leverarm)
+        dx, dy, dz = leverArmCorrection(row.orientation, leverarm)
 
         # Translation to global system
-        y = float(row[1][0]) + dy
-        x = float(row[1][1]) + dx
-        z = float(row[1][2]) + dz
+        y = float(row.coordinate[0]) + dy
+        x = float(row.coordinate[1]) + dx
+        z = float(row.coordinate[2]) + dz
 
-        row[1] = (str(y), str(x), str(z))
+        row.coordinate = (str(y), str(x), str(z))
 
     return lst_matched
 
@@ -189,12 +200,12 @@ def matchLeverArmWithCam(lst_matched, leverarm):
         :return lst_matched:
     '''
     for row in lst_matched:
-        dx, dy, dz = leverArmCorrection(row[2], leverarm)
+        dx, dy, dz = leverArmCorrection(row.orientation, leverarm)
 
         #WGS84 Radius of the large half-axis
         radius = 6378137
 
-        center = row[1]
+        center = row.coordinate
         latitude, longitude, height = float(center[0]), float(center[1]), float(center[2])
         extentOfLatitude = 2*math.pi*math.cos(latitude)*radius
         extentOfLongitude = 2*math.pi*radius
@@ -204,7 +215,7 @@ def matchLeverArmWithCam(lst_matched, leverarm):
         x = longitude + dx/extentOfLatitude*360
         z = height + dz
 
-        row[1] = (str(y), str(x), str(z))
+        row.coordinate = (str(y), str(x), str(z))
 
     return lst_matched
 
@@ -218,7 +229,8 @@ def matchWithAccuracy(lst_matched, accuracy):
     '''
 
     for row in lst_matched:
-        row[3] = str(accuracy)
+        if not row.fixed:
+            row.accuracy = str(accuracy)
     return lst_matched
 
 def exportMatched(lst_matched, export_file):
@@ -233,11 +245,11 @@ def exportMatched(lst_matched, export_file):
     export = open(export_file, "wt")
 
     for row in lst_matched:
-        picturename = row[0]
+        picturename = row.picture
         export.write(picturename)
-        center = geodround(row[1][0], 4) + "," + geodround(row[1][1], 4) + "," + geodround(row[1][2], 4)
+        center = geodround(row.coordinate[0], 4) + "," + geodround(row.coordinate[1], 4) + "," + geodround(row.coordinate[2], 4)
         export.write("," + center)
-        accuracy = row[3]
+        accuracy = row.accuracy
         if accuracy is not None:
             export.write("," + accuracy)
         export.write("\n")
@@ -284,7 +296,7 @@ while not value is None:
 ''' Start Processing '''
 
 if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
-    if not parameters["offsetZ"] is None:
+    if not parameters["offsetZ"] == 0:
         print("offset of " + str(parameters["offsetZ"]) + "m defined in z axis")
 
     lst_pictures = importPictureNames(parameters["pic"])
@@ -318,7 +330,7 @@ if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
 
     if not parameters["acc"] is None:
         matchWithAccuracy(lst_matched, float(parameters["acc"]))
-        print("Accuracy overwritten")
+        print("Non fixed accuracy overwritten with " + parameters["acc"])
 
     if not parameters["o"] is None:
         exportMatched(lst_matched, parameters["o"])
