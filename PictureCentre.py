@@ -336,8 +336,6 @@ if not parameters["pic"] is None and os.path.isdir(parameters["pic"]):
         exportMatched(lst_matched, parameters["o"])
     else:
         print("Export-Path missing")
-        for row in lst_matched:
-            print(row)
 
 else:
     raise Exception("Picture Path missing")
